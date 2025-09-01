@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "npm run build:ts && npm run build:assets",
+    "build:ts": "esbuild netlify/edge-functions/index.ts --bundle --platform=node --target=es2020 --outfile=dist/edge-functions/index.js",
+    "build:assets": "mkdir -p dist",
+    "build-dry": "netlify build --dry",
+    "deploy": "netlify deploy --prod",
+    "new-function": "netlify functions:create",
+    "netlify-login": "netlify login",
+    "netlify-link": "netlify link",
+    "netlify-init": "netlify init",
+    "init-project": "deno init --npm hono cpliege.ics",
+    "deno-upgrade": "deno upgrade"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "hono": "^4.3.11"
+  },
+  "devDependencies": {
+    "netlify-cli": "^23.4.3",
+    "esbuild": "^0.19.3"
+  }
+}
