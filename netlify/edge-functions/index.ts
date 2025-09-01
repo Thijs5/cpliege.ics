@@ -20,6 +20,11 @@ app.get("/", (c) => {
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
         crossorigin="anonymous"
       />
+      <script
+        src="https://cdn.jsdelivr.net/npm/add-to-calendar-button@2"
+        async
+        defer
+      ></script>
     </head>
     <body>
       <div class="container">
@@ -110,7 +115,25 @@ app.get("/", (c) => {
                 : "";
               return;
             }
-            let tableHtml = \`<h5>\${divisionName}</h5>
+            let tableHtml = \`
+              <h5 class="d-flex justify-content-between align-items-center">
+                \${divisionName}
+
+                <add-to-calendar-button 
+                  name="Sample Event"
+                  description="Play with me!"
+                  startDate="2025-09-15"
+                  startTime="10:15"
+                  endTime="17:45"
+                  timeZone="UTC"
+                  location="World Wide Web"
+                  icsFile="http://localhost:8888/api/clubs/0928/MM%20-%20DIVISION%204%20A.ics"
+                  subscribe
+                  options="'Apple','Google','Outlook.com','Yahoo','Microsoft365','iCal'"
+                  listStyle="dropdown-static"
+                  lightMode="system"
+                ></add-to-calendar-button>
+              </h5>
               <table class="table table-bordered table-striped">
                 <thead>
                   <tr>
