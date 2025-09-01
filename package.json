@@ -19,7 +19,8 @@
     "hono": "^4.3.11"
   },
   "devDependencies": {
-    "netlify-cli": "^23.4.3",
-    "esbuild": "^0.19.3"
+    "esbuild": "^0.19.3",
+    "netlify-cli": "^23.4.3"
+    
   }
 }

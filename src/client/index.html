@@ -1,17 +1,4 @@
-import { Hono, Context } from "https://deno.land/x/hono@v4.3.11/mod.ts";
-import { handle } from "https://deno.land/x/hono@v4.3.11/adapter/netlify/index.ts";
-import { html, raw } from "hono/html";
-
-import { getClubs } from "./clubs/clubs.service.ts";
-import { getTeam, getTeams } from "./teams/teams.service.ts";
-import { ClubId } from "./clubs/club.model.ts";
-import { TeamName } from "./teams/team.model.ts";
-import { generateICS } from "./calendar/calendar.service.ts";
-
-const app = new Hono({ strict: true });
-
-app.get("/", (c) => {
-  return c.html(html`<html lang="en">
+<!DOCTYPE html lang="en">
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -22,11 +9,6 @@ app.get("/", (c) => {
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
         crossorigin="anonymous"
       />
-      <script
-        src="https://cdn.jsdelivr.net/npm/add-to-calendar-button@2"
-        async
-        defer
-      ></script>
     </head>
     <body>
       <div class="container">
@@ -59,8 +41,10 @@ app.get("/", (c) => {
         <div id="gamesTableContainer" class="mt-4"></div>
 
         <script>
+const baseApiUrl = 'https://cpliege-ics.netlify.app'
+
           async function fetchClubs() {
-            const res = await fetch("/api/clubs");
+            const res = await fetch(`${baseApiUrl}/api/clubs`);
             const { data } = await res.json();
             const clubSelect = document.getElementById("clubSelect");
             data.forEach((club) => {
@@ -72,9 +56,7 @@ app.get("/", (c) => {
           }
 
           async function fetchDivisions(clubId) {
-            const res = await fetch(
-              "/api/clubs/_clubId_".replace("_clubId_", clubId)
-            );
+            const res = await fetch(`/api/clubs/${clubId}`);
             const { divisions } = await res.json();
             const divisionSelect = document.getElementById("divisionSelect");
             divisionSelect.innerHTML =
@@ -98,11 +80,7 @@ app.get("/", (c) => {
 
           async function fetchGames(clubId, divisionName) {
             document.getElementById("gamesTableContainer").innerHTML = "";
-            const res = await fetch(
-              "/api/clubs/_clubId_/_divisionName_"
-                .replace("_clubId_", encodeURIComponent(clubId))
-                .replace("_divisionName_", encodeURIComponent(divisionName))
-            );
+            const res = await fetch(`${baseApiUrl}/api/clubs/${encodeURIComponent(clubId)}/${encodeURIComponent(divisionName)}`);
             const { division } = await res.json();
             showGamesTable(clubId, division?.name ?? "", division?.games ?? []);
           }
@@ -111,21 +89,14 @@ app.get("/", (c) => {
             const container = document.getElementById("gamesTableContainer");
             if (!games || games.length === 0) {
               container.innerHTML = divisionName
-                ? "<h5>_divisionName_</h5><p>No games found.</p>".replace(
-                    "_divisionName_",
-                    divisionName
-                  )
+                ? `<h5>${divisionName}</h5><p>No games found.</p>`
                 : "";
               return;
             }
-            let calendarUrl =
-              "https://cpliege-ics.netlify.app/api/clubs/_clubId_/_divisionName_.ics"
-                .replace("_clubId_", encodeURIComponent(clubId))
-                .replace("_divisionName_", encodeURIComponent(divisionName));
-            let tableHtml = \`
+            const calendarUrl = `${baseApiUrl}/api/clubs/${encodeURIComponent(clubId)}/${encodeURIComponent(divisionName)}.ics`;
+            const tableHtml = `
               <h5 class="d-flex justify-content-between align-items-center">
-                \${divisionName}
-
+                ${divisionName}
               </h5>
               <table class="table table-bordered table-striped">
                 <thead>
@@ -136,19 +107,19 @@ app.get("/", (c) => {
                     <th>Away Team</th>
                   </tr>
                 </thead>
-                <tbody>\`;
+                <tbody>`;
             games.forEach((game) => {
               const dt = game.datetime
                 ? new Date(game.datetime).toLocaleString()
                 : "";
-              tableHtml += \`<tr>
-                <td class="font-monospace">\${game.matchId}</td>
+              tableHtml += `<tr>
+                <td class="font-monospace">${game.matchId}</td>
                 <td class="font-monospace">
-                  <time datetime="\${dt}">\${dt}</time>
+                  <time datetime="${dt}">${dt}</time>
                 </td>
-                <td>\${game.homeTeam}</td>
-                <td>\${game.awayTeam}</td>
-              </tr>\`;
+                <td>${game.homeTeam}</td>
+                <td>${game.awayTeam}</td>
+              </tr>`;
             });
             tableHtml += "</tbody></table>";
             container.innerHTML = tableHtml;
@@ -173,47 +144,4 @@ app.get("/", (c) => {
         </script>
       </div>
     </body>
-  </html>`);
-});
-
-app.get("/api/clubs", async (c: Context) => {
-  const clubs = await getClubs();
-  return c.json({ data: clubs });
-});
-
-app.get("/api/clubs/:clubId/teams", async (c: Context) => {
-  const clubId = new ClubId(c.req.param("clubId"));
-  const teams = await getTeams(clubId);
-  return c.json({ data: teams });
-});
-
-app.get("/api/clubs/:clubId/teams/:teamName{.+\\.ics}", async (c: Context) => {
-  const team = await getTeam(
-    new ClubId(c.req.param("clubId")),
-    new TeamName(c.req.param("teamName"))
-  );
-  if (!team) {
-    return c.text("Team not found", 404);
-  }
-
-  const ics = generateICS(team);
-  const options = {
-    "Content-Type": "text/calendar; charset=utf-8",
-    "Content-Disposition": `attachment; filename="${team.teamName.value}.ics"`,
-  };
-  return c.text(ics, 200, c.req.query("file") ? options : undefined);
-});
-
-app.get("/api/clubs/:clubId/teams/:teamName", async (c: Context) => {
-  const team = await getTeam(
-    new ClubId(c.req.param("clubId")),
-    new TeamName(c.req.param("teamName"))
-  );
-  if (!team) {
-    return c.text("Team not found", 404);
-  }
-
-  return c.json({ data: team });
-});
-
-export default handle(app);
+  </html>

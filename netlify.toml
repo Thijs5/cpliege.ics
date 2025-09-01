@@ -2,5 +2,10 @@
 function = "index"
 path = "/*"
 
+[[headers]]
+  for = "/*"
+  [headers.values]
+    access-control-allow-origin = "*"
+
 [build]
 	command = "echo 'Skipping build (netlify.toml override)'"
